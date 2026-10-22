@@ -16,7 +16,7 @@
 | `style_mapping.example.csv` | 样式-图层映射示例（绑定样式用） |
 | `slds/` | 存放 SLD 样式文件的空目录 |
 
-> 版本查看：`geopub.exe --version`（当前 0.3.0）。帮助：`geopub.exe --help`。
+> 版本查看：`geopub.exe --version`。帮助：`geopub.exe --help`。
 >
 > 手册示例中的 `geopub.exe` 即 `windows\geopub.exe`；在**部署包根目录**执行命令时写 `windows\geopub.exe ...`，或先 `cd windows` 再执行。Linux 同理（`linux/geopub`）。
 

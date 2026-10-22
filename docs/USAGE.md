@@ -720,4 +720,4 @@ python scripts/build.py        # 产出 dist/geopub（Linux）/ dist/geopub.exe�
 
 ## 11. 版本历史
 
-各版本的新增、变更与修复详见项目根目录 [CHANGELOG.md](./CHANGELOG.md)。当前版本 0.3.0，运行 `geopub --version`（或 `-V`）可查看。
+各版本的新增、变更与修复详见项目根目录 [CHANGELOG.md](../CHANGELOG.md)。运行 `geopub --version`（或 `-V`）可查看当前版本。

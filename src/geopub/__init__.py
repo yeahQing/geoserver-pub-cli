@@ -7,4 +7,4 @@
   geopub check  按清单核对图层发布状态，输出 CSV（只读）
 """
 
-__version__ = "0.3.0"
+__version__ = "0.1.0"

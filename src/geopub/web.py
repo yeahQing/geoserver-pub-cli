@@ -12,7 +12,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
-from . import core
+from . import __version__, core
 from .client import GeoServerClient
 from .config import DbConfig, GeoConfig
 from .excel_io import read_layer_names, read_style_mapping
@@ -63,7 +63,7 @@ class CheckIn(BaseModel):
 
 
 def make_app(geo: GeoConfig, db: DbConfig) -> FastAPI:
-    app = FastAPI(title="GeoPub Web", version="0.3.0")
+    app = FastAPI(title="GeoPub Web", version=__version__)
 
     @app.get("/", response_class=HTMLResponse)
     def index() -> HTMLResponse:

@@ -166,14 +166,18 @@ python scripts/build.py geopub-macos   # 三平台分别命名，便于归档区
 - 推送 **`v*` 标签**（如 `git tag v1.0.0 && git push origin v1.0.0`）；
 - 或 GitHub 网页手动 **`workflow_dispatch`**。
 
-矩阵在 **ubuntu / windows / macos** 三个 runner 上各构建一份单文件程序，并作为 Artifact 上传。
+矩阵在 **ubuntu / windows / macos** 三个 runner 上各构建一份单文件程序；推送 `v*` 标签时，
+构建产物会由 `release` job 汇总并自动附加到对应的 GitHub Release，外部用户无需登录即可直接下载。
+仅手动触发（`workflow_dispatch`）时不上传 Release，产物保留在 Actions 的 Artifact 中。
 
 ```bash
 # 本地打标签触发（示例）
-git tag v1.0.0
-git push origin v1.0.0
-# → 到仓库 Actions 页面等待 build-binaries 完成 → 下载对应平台 Artifact
+git tag -a v0.1.0 -m "v0.1.0"
+git push origin v0.1.0
+# → Actions 跑 build-binaries → 完成后在 Releases 页面即可看到三个平台的二进制
 ```
+
+产物命名：`geopub-linux-x64`、`geopub-windows-x64.exe`、`geopub-macos-arm64`。
 
 CI 关键步骤（与本地等价）：
 
@@ -181,12 +185,14 @@ CI 关键步骤（与本地等价）：
 - uses: actions/setup-python@v5
   with: { python-version: "3.11" }
 - run: pip install ".[web,build]"
-- run: python scripts/build.py ${{ matrix.name }}   # 按矩阵命名
+- run: python scripts/build.py ${{ matrix.name }}   # 按矩阵命名（不要带 .exe）
 - uses: actions/upload-artifact@v4
   with: { name: ${{ matrix.name }}, path: dist/* }
+- uses: softprops/action-gh-release@v2              # release job，仅 tag 触发
+  with: { files: release/*, generate_release_notes: true }
 ```
 
-> 本地**无需**配置 CI；只想拿包就打标签推送，去 Actions 下载即可。
+> 本地**无需**配置 CI；只想拿包就打标签推送，去 Releases 下载即可。
 
 ---
 

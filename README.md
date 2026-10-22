@@ -146,7 +146,8 @@ python scripts/build.py                 # 产物在 dist/geopub（Windows 为 di
 python scripts/build.py my-tool         # 自定义产物名
 ```
 
-推送 `v*` 标签会触发 GitHub Actions，在 `ubuntu` / `windows` / `macos` 三个 runner 上各产出一份并上传 Artifact。
+推送 `v*` 标签会触发 GitHub Actions，在 `ubuntu` / `windows` / `macos` 三个 runner 上各构建一份，
+并自动附加到 GitHub Release（`geopub-linux-x64` / `geopub-windows-x64.exe` / `geopub-macos-arm64`）。
 
 > PyInstaller **不能交叉编译**，且 Linux 产物绑定构建机的 glibc。目标机含 CentOS 7 等老系统时，请在老系统上构建以扩大兼容面。
 > 详见 **[docs/BUILD.md](./docs/BUILD.md)**。
