@@ -21,6 +21,16 @@ import sys
 import tempfile
 from pathlib import Path
 
+# Windows 控制台默认编码可能是 cp936 / cp1252，直接 print 中文会抛
+# UnicodeEncodeError 导致构建中断。强制 stdout/stderr 走 UTF-8，
+# 让本地与 CI 行为一致（GitHub Actions 日志本身按 UTF-8 解析）。
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        try:
+            _stream.reconfigure(encoding="utf-8", errors="replace")
+        except (OSError, ValueError):  # pragma: no cover
+            pass
+
 ROOT = Path(__file__).resolve().parent.parent
 ENTRY = ROOT / "entrypoint.py"
 STATIC = ROOT / "src" / "geopub" / "web" / "static"

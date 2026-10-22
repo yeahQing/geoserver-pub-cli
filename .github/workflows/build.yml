@@ -35,6 +35,9 @@ jobs:
         run: pip install ".[web,build]"
 
       - name: Build binary
+        env:
+          # Windows runner 控制台为 cp1252，强制 Python 用 UTF-8 输出中文日志
+          PYTHONUTF8: "1"
         run: python scripts/build.py ${{ matrix.name }}
 
       - name: Upload artifact
