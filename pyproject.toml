@@ -43,9 +43,9 @@ dev = ["pytest>=8.0", "pytest-cov>=5.0", "ruff>=0.5"]
 geopub = "geopub.cli:app"
 
 [project.urls]
-Homepage = "https://github.com/zhaiweichao/geoserver-pub-cli"
-Issues = "https://github.com/zhaiweichao/geoserver-pub-cli/issues"
-Changelog = "https://github.com/zhaiweichao/geoserver-pub-cli/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/yeahQing/geoserver-pub-cli"
+Issues = "https://github.com/yeahQing/geoserver-pub-cli/issues"
+Changelog = "https://github.com/yeahQing/geoserver-pub-cli/blob/main/CHANGELOG.md"
 
 [tool.setuptools]
 package-dir = { "" = "src" }

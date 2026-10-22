@@ -1,6 +1,6 @@
 # geopub · GeoServer 批量发布 CLI
 
-[![build-binaries](https://github.com/zhaiweichao/geoserver-pub-cli/actions/workflows/build.yml/badge.svg)](https://github.com/zhaiweichao/geoserver-pub-cli/actions/workflows/build.yml)
+[![build-binaries](https://github.com/yeahQing/geoserver-pub-cli/actions/workflows/build.yml/badge.svg)](https://github.com/yeahQing/geoserver-pub-cli/actions/workflows/build.yml)
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 
@@ -20,7 +20,7 @@
 要求 **Python ≥ 3.11**（解析 TOML 配置用到标准库 `tomllib`）。
 
 ```bash
-git clone https://github.com/zhaiweichao/geoserver-pub-cli.git
+git clone https://github.com/yeahQing/geoserver-pub-cli.git
 cd geoserver-pub-cli
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
@@ -35,7 +35,7 @@ pip install -e ".[build]"
 
 安装后即可使用 `geopub` 命令；开发期也可 `python -m geopub ...`。
 
-不想装 Python：直接到 [Releases](https://github.com/zhaiweichao/geoserver-pub-cli/releases) 下载对应平台的可执行文件。
+不想装 Python：直接到 [Releases](https://github.com/yeahQing/geoserver-pub-cli/releases) 下载对应平台的可执行文件。
 
 ## 2. 快速开始
 
