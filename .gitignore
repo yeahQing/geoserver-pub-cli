@@ -1,0 +1,55 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+build/
+build_*/
+dist/
+*.egg-info/
+.eggs/
+.venv/
+venv/
+.env
+.venv_run/
+
+# ---- 测试与覆盖率 ----
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# ---- 打包 ----
+*.spec
+# 保留项目自带的 PyInstaller 配置（如有），其余 spec 忽略
+!geopub.spec
+
+# ---- 运行时产物 ----
+# 运行日志（含本机绝对路径，不入库）
+geopub.log
+# 核对结果 / 拉取的 SLD
+layer_check_result.csv
+sld_output/
+# 部署目录（本地打包产物中转）
+geopub-deploy-ops/
+
+# ---- 本地配置（含明文密码，绝不入库）----
+geopub.toml
+.geopub.toml
+geopub.json
+.geopub.json
+geopub.yaml
+geopub.yml
+config/
+
+# ---- 编辑器 / 系统 ----
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# ---- 本地临时目录 ----
+.trash/
+.scratch/
+.workbuddy/

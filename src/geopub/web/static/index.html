@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GeoPub Web · GeoServer 发布工具</title>
+<style>
+  :root {
+    --bg: #f5f7fa; --card: #ffffff; --border: #e2e8f0; --text: #1a202c;
+    --muted: #64748b; --primary: #2563eb; --primary-d: #1d4ed8;
+    --ok: #16a34a; --warn: #d97706; --err: #dc2626; --code: #0f172a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    background: var(--bg); color: var(--text); font-size: 14px; }
+  header { background: #0f172a; color: #fff; padding: 14px 22px; display: flex;
+    align-items: center; gap: 12px; }
+  header h1 { font-size: 17px; margin: 0; font-weight: 600; }
+  .badge { font-size: 12px; padding: 3px 9px; border-radius: 999px; background: #334155; }
+  .badge.ok { background: #166534; } .badge.err { background: #991b1b; }
+  .wrap { max-width: 980px; margin: 18px auto; padding: 0 16px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px 18px; margin-bottom: 16px; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+  .card h2 { margin: 0 0 12px; font-size: 15px; }
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 14px; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field.full { grid-column: 1 / -1; }
+  label { font-size: 12px; color: var(--muted); }
+  input, select, textarea { font: inherit; padding: 7px 9px; border: 1px solid var(--border);
+    border-radius: 7px; background: #fff; color: var(--text); width: 100%; }
+  textarea { resize: vertical; min-height: 64px; font-family: ui-monospace, "Cascadia Code", monospace; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+  .tab { padding: 8px 16px; border: 1px solid var(--border); background: #fff; border-radius: 8px;
+    cursor: pointer; font-weight: 600; color: var(--muted); }
+  .tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .panel { display: none; } .panel.active { display: block; }
+  button.act { background: var(--primary); color: #fff; border: none; padding: 9px 16px;
+    border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px; }
+  button.act:hover { background: var(--primary-d); }
+  button.ghost { background: #fff; color: var(--primary); border: 1px solid var(--primary);
+    padding: 9px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+  .row { display: flex; gap: 10px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+  pre { background: #0f172a; color: #e2e8f0; padding: 12px; border-radius: 8px; overflow: auto;
+    max-height: 360px; font-size: 12.5px; margin-top: 12px; }
+  table { border-collapse: collapse; width: 100%; margin-top: 10px; font-size: 13px; }
+  th, td { border: 1px solid var(--border); padding: 6px 8px; text-align: left; }
+  th { background: #f1f5f9; }
+  .s-ok { color: var(--ok); font-weight: 600; }
+  .s-skipped { color: var(--warn); } .s-failed { color: var(--err); font-weight: 600; }
+  .hint { color: var(--muted); font-size: 12px; margin-top: 6px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>GeoPub Web</h1>
+  <span id="status" class="badge">未连接</span>
+  <span class="badge" id="ws"></span>
+</header>
+
+<div class="wrap">
+  <div class="card">
+    <h2>连接配置</h2>
+    <div class="grid">
+      <div class="field"><label>GeoServer 地址</label><input id="g_url" placeholder="http://host:8080/geoserver"></div>
+      <div class="field"><label>工作空间</label><input id="g_ws" value="demo"></div>
+      <div class="field"><label>用户名</label><input id="g_user" value="admin"></div>
+      <div class="field"><label>密码</label><input id="g_pass" type="password"></div>
+      <div class="field"><label>数据库 Host</label><input id="d_host" placeholder="localhost"></div>
+      <div class="field"><label>数据库 Port</label><input id="d_port" value="5432"></div>
+      <div class="field"><label>数据库名</label><input id="d_db" value="postgres"></div>
+      <div class="field"><label>Schema</label><input id="d_schema" value="public"></div>
+      <div class="field"><label>数据库用户</label><input id="d_user" value="postgres"></div>
+      <div class="field"><label>数据库密码</label><input id="d_pass" type="password"></div>
+      <div class="field"><label>数据存储名</label><input id="d_store" value="pg_store"></div>
+    </div>
+    <div class="row">
+      <button class="act" onclick="testConn()">测试连接</button>
+      <span id="testmsg" class="hint"></span>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-t="layer">图层发布</div>
+    <div class="tab" data-t="style">样式发布与绑定</div>
+    <div class="tab" data-t="fetch">样式拉取</div>
+    <div class="tab" data-t="check">发布状态核对</div>
+  </div>
+
+  <!-- 图层发布 -->
+  <div class="panel active card" id="p-layer">
+    <h2>发布 PostGIS 图层</h2>
+    <div class="grid">
+      <div class="field"><label>模式</label>
+        <select id="l_mode">
+          <option value="file">文件名单</option>
+          <option value="all">Schema 全部表</option>
+          <option value="list">手动输入表名</option>
+        </select>
+      </div>
+      <div class="field"><label>文件路径 / 列标题</label>
+        <input id="l_file" placeholder="layer.xlsx/csv ｜ 列标题默认'图层名'">
+      </div>
+      <div class="field full"><label>手动表名（模式=list 时，逗号或换行分隔）</label>
+        <textarea id="l_tables" placeholder="poi_point&#10;city_grid"></textarea>
+      </div>
+    </div>
+    <div class="row">
+      <button class="act" onclick="listTables()">列出数据库表</button>
+      <button class="act" onclick="publishLayers()">发布图层</button>
+    </div>
+    <div id="tables_out" class="hint"></div>
+    <pre id="l_out" style="display:none"></pre>
+  </div>
+
+  <!-- 样式发布 -->
+  <div class="panel card" id="p-style">
+    <h2>发布 SLD 并绑定默认样式</h2>
+    <div class="grid">
+      <div class="field full"><label>SLD 目录</label><input id="s_dir" placeholder="D:/slds"></div>
+      <div class="field full"><label>映射文件（可选，样式-图层一对多）</label><input id="s_file" placeholder="mapping.xlsx/csv"></div>
+    </div>
+    <div class="row">
+      <button class="act" onclick="publishStyles()">发布并绑定</button>
+    </div>
+    <pre id="s_out" style="display:none"></pre>
+  </div>
+
+  <!-- 样式拉取 -->
+  <div class="panel card" id="p-fetch">
+    <h2>拉取图层默认样式 SLD（只读）</h2>
+    <div class="grid">
+      <div class="field full"><label>图层名（逗号或换行分隔）</label>
+        <textarea id="f_layers" placeholder="poi_point&#10;city_grid"></textarea>
+      </div>
+      <div class="field"><label>映射文件（可选）</label><input id="f_file" placeholder="layer.xlsx/csv"></div>
+      <div class="field"><label>输出目录</label><input id="f_out" value="sld_output"></div>
+    </div>
+    <div class="row">
+      <button class="ghost" onclick="fetchList()">仅列出</button>
+      <button class="act" onclick="fetchSld()">拉取 SLD</button>
+    </div>
+    <pre id="f_result" style="display:none"></pre>
+  </div>
+
+  <!-- 发布状态核对 -->
+  <div class="panel card" id="p-check">
+    <h2>核对图层发布状态（只读，输出 CSV）</h2>
+    <div class="grid">
+      <div class="field"><label>清单文件路径 / 列标题</label>
+        <input id="k_file" placeholder="layer.csv ｜ 列标题默认'图层名'">
+      </div>
+      <div class="field"><label>结果 CSV 输出路径</label>
+        <input id="k_out" value="layer_check_result.csv">
+      </div>
+      <div class="field full"><label>图层名（与清单文件合并去重，可留空）</label>
+        <textarea id="k_layers" placeholder="poi_point&#10;city_grid"></textarea>
+      </div>
+    </div>
+    <div class="row">
+      <button class="act" onclick="runCheck()">核对并输出 CSV</button>
+      <label style="display:flex;align-items:center;gap:5px;margin:0">
+        <input type="checkbox" id="k_db" style="width:auto"> 同时核对数据库表
+      </label>
+      <label style="display:flex;align-items:center;gap:5px;margin:0">
+        <input type="checkbox" id="k_deep" style="width:auto"> 深度（查 FeatureType）
+      </label>
+      <label style="display:flex;align-items:center;gap:5px;margin:0">
+        <input type="checkbox" id="k_only" style="width:auto"> 只输出未发布
+      </label>
+      <label style="display:flex;align-items:center;gap:5px;margin:0">
+        <input type="checkbox" id="k_store" checked style="width:auto"> 查所属存储
+      </label>
+      <label style="display:flex;align-items:center;gap:5px;margin:0">
+        <input type="checkbox" id="k_style" style="width:auto"> 查默认样式（慢）
+      </label>
+    </div>
+    <div id="k_summary" class="hint"></div>
+    <pre id="k_result" style="display:none"></pre>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+// 切换 Tab
+document.querySelectorAll('.tab').forEach(t => {
+  t.onclick = () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    $('p-' + t.dataset.t).classList.add('active');
+  };
+});
+
+// 启动时拉取配置预填
+async function bootstrap() {
+  try {
+    const r = await fetch('/api/config');
+    const c = await r.json();
+    $('g_url').value = c.geoserver.url || '';
+    $('g_ws').value = c.geoserver.workspace || 'demo';
+    $('g_user').value = c.geoserver.user || 'admin';
+    if (c.geoserver.password_set) $('g_pass').placeholder = '(已通过配置文件设置)';
+    const d = c.database;
+    $('d_host').value = d.host || '';
+    $('d_port').value = d.port || 5432;
+    $('d_db').value = d.dbname || 'postgres';
+    $('d_schema').value = d.schema || 'public';
+    $('d_user').value = d.user || 'postgres';
+    $('d_store').value = d.store || 'pg_store';
+    $('ws').textContent = 'workspace: ' + (c.geoserver.workspace || '');
+  } catch (e) { console.warn(e); }
+}
+bootstrap();
+
+function connBody() {
+  return {
+    url: $('g_url').value.trim(),
+    user: $('g_user').value.trim(),
+    password: $('g_pass').value,
+    workspace: $('g_ws').value.trim(),
+  };
+}
+function dbBody() {
+  return {
+    host: $('d_host').value.trim(),
+    port: parseInt($('d_port').value || '5432', 10),
+    dbname: $('d_db').value.trim(),
+    schema: $('d_schema').value.trim(),
+    user: $('d_user').value.trim(),
+    password: $('d_pass').value,
+    store: $('d_store').value.trim(),
+  };
+}
+function setStatus(ok, text) {
+  const s = $('status');
+  s.className = 'badge ' + (ok ? 'ok' : 'err');
+  s.textContent = text;
+}
+
+async function testConn() {
+  const body = { ...connBody(), ...dbBody() };
+  const r = await fetch('/api/test', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+  const j = await r.json();
+  setStatus(j.reachable, j.reachable ? ('已连接 ' + j.detail) : ('失败 ' + j.detail));
+  $('testmsg').textContent = JSON.stringify(j);
+}
+
+async function listTables() {
+  const body = { ...connBody(), ...dbBody() };
+  const r = await fetch('/api/tables?' + new URLSearchParams(), {method:'GET'});
+  // tables 端点使用启动时的配置，无需重传；这里直接请求
+  const resp = await fetch('/api/tables');
+  const j = await resp.json();
+  if (j.tables) {
+    $('tables_out').textContent = '数据库表(' + j.tables.length + '): ' + j.tables.join(', ');
+  } else {
+    $('tables_out').textContent = '列取失败: ' + JSON.stringify(j);
+  }
+}
+
+function show(el, obj) { el.style.display = 'block'; el.textContent = JSON.stringify(obj, null, 2); }
+
+async function publishLayers() {
+  const mode = $('l_mode').value;
+  let tables = [];
+  if (mode === 'list') tables = $('l_tables').value.split(/[\n,]/).map(s=>s.trim()).filter(Boolean);
+  const parts = $('l_file').value.split('｜').map(s=>s.trim());
+  const body = {
+    mode,
+    file_path: parts[0] || null,
+    column: parts[1] || '图层名',
+    tables,
+  };
+  const r = await fetch('/api/layer/publish', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+  show($('l_out'), await r.json());
+}
+
+async function publishStyles() {
+  const body = { style_dir: $('s_dir').value.trim(), file_path: $('s_file').value.trim() || null };
+  const r = await fetch('/api/style/publish', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+  show($('s_out'), await r.json());
+}
+
+async function fetchList() {
+  const body = fetchBody(true);
+  const r = await fetch('/api/fetch', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+  show($('f_result'), await r.json());
+}
+async function fetchSld() {
+  const body = fetchBody(false);
+  const r = await fetch('/api/fetch', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+  show($('f_result'), await r.json());
+}
+function fetchBody(listOnly) {
+  const layers = $('f_layers').value.split(/[\n,]/).map(s=>s.trim()).filter(Boolean);
+  return {
+    layers,
+    file_path: $('f_file').value.trim() || null,
+    out: $('f_out').value.trim() || 'sld_output',
+    list_only: listOnly,
+  };
+}
+
+async function runCheck() {
+  const parts = $('k_file').value.split('｜').map(s=>s.trim());
+  const body = {
+    layers: $('k_layers').value.split(/[\n,]/).map(s=>s.trim()).filter(Boolean),
+    file_path: parts[0] || null,
+    column: parts[1] || '图层名',
+    out: $('k_out').value.trim() || 'layer_check_result.csv',
+    deep: $('k_deep').checked,
+    check_db: $('k_db').checked,
+    only_missing: $('k_only').checked,
+    with_store: $('k_store').checked,
+    with_style: $('k_style').checked,
+  };
+  const r = await fetch('/api/check', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+  const j = await r.json();
+  if (j.detail && !j.records) {
+    $('k_summary').textContent = '失败: ' + j.detail;
+    $('k_result').style.display = 'none';
+    return;
+  }
+  const modeTxt = j.mode === 'catalog' ? ('全量清单比对（服务端共 ' + j.catalog_size + ' 个图层）') : '逐个探测';
+  $('k_summary').textContent = '共 ' + j.total + ' 条：已发布 ' + j.published + ' / 未发布 ' + j.unpublished
+    + ' ｜ 方式: ' + modeTxt + ' ｜ CSV: ' + j.csv;
+  show($('k_result'), j);
+}
+</script>
+</body>
+</html>

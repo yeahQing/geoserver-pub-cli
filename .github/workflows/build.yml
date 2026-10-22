@@ -1,0 +1,40 @@
+name: build-binaries
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            name: geopub-linux
+          - os: windows-latest
+            name: geopub-windows.exe
+          - os: macos-latest
+            name: geopub-macos
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install ".[web,build]"
+
+      - name: Build binary
+        run: python scripts/build.py ${{ matrix.name }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: dist/*
+          if-no-files-found: error
