@@ -104,11 +104,11 @@
 
 ## [0.1.0] — 2026-09-11
 
-初始版本：从内部批量发布脚本重写而来的独立 Python CLI（typer + httpx + openpyxl + questionary + psycopg2），仅实现 **db / PostGIS 模式**。
+初始版本：独立 Python CLI（typer + httpx + openpyxl + questionary + psycopg2），仅实现 **db / PostGIS 模式**。
 
 ### 功能
 
-- **`geopub layer`**：PostGIS 表批量发布为 GeoServer 图层，复刻原 `GeoserverLayerPublisher`（db 模式）——ensure datastore → 按名单（`--excel`）或 `--all` 全量取表 → 幂等发布；支持 `--interactive` 交互勾选。
-- **`geopub style`**：递归扫描 SLD 目录批量发布样式并绑定为图层默认样式，复刻原 `GeoserverStylePublisher`——映射文件（一对多）优先，否则同名回退绑定。
-- **`geopub fetch`**：批量只读拉取图层默认样式 SLD 落盘（`{out}/{layer}.sld` + `_sld_report.json` 汇总），复刻 `scripts/01-fetch-sld`；支持 `--layers` / `--excel` / `--manifest` 三种清单来源与 `--list` 预览。
-- 未迁移 OkHttp 直连路线（`GeoserverStyleHelper`，不绑定图层，已弃用）；未实现 shp 模式。
+- **`geopub layer`**：PostGIS 表批量发布为 GeoServer 图层——ensure datastore → 按名单（`--excel`）或 `--all` 全量取表 → 幂等发布；支持 `--interactive` 交互勾选。
+- **`geopub style`**：递归扫描 SLD 目录批量发布样式并绑定为图层默认样式——映射文件（一对多）优先，否则同名回退绑定。
+- **`geopub fetch`**：批量只读拉取图层默认样式 SLD 落盘（`{out}/{layer}.sld` + `_sld_report.json` 汇总）；支持 `--layers` / `--excel` / `--manifest` 三种清单来源与 `--list` 预览。
+- 未实现 shp 模式。

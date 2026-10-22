@@ -186,8 +186,8 @@ def _resource_ref(resource) -> str:
 class GeoServerClient:
     """对 GeoServer REST API 的薄封装。
 
-    对应原 Java 项目中的 geoserver-manager 调用，
-    端点路径与 `GeoserverStyleHelper` / `GeoserverLayerPublisher` 保持一致。
+    端点路径遵循 GeoServer 官方 REST 文档（/rest/...），不依赖任何第三方 SDK，
+    便于对准不同版本的 GeoServer 实例逐个端点排查。
     """
 
     # check / 审计类只读操作共用的时间上限（单次 HTTP 请求）
@@ -549,7 +549,6 @@ class GeoServerClient:
         """返回 (样式名, 样式工作空间名|None, 原因)。
 
         样式名为空时 reason 说明原因（图层不存在 / 无默认样式）。
-        对应 fetch_sld.py 的 GeoServer.get_default_style。
         """
         r = self._client.get(
             f"/layers/{self.cfg.workspace}:{layer}.json",
@@ -570,8 +569,6 @@ class GeoServerClient:
 
     def get_sld(self, style_name: str, style_ws: str | None = None) -> str | None:
         """按样式名取 SLD 文本；依次尝试 样式自带 ws → 当前 ws → 全局。
-
-        对应 fetch_sld.py 的 GeoServer.get_sld。
         """
         candidates: list[str] = []
         if style_ws:
