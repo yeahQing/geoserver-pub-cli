@@ -256,11 +256,12 @@ geopub layer \
 ### 5.1 用法
 
 ```bash
-geopub style [通用连接参数] --dir <SLD目录> [--file-path 映射文件（或 --excel）] [--interactive]
+geopub style [通用连接参数] --dir <SLD目录> [--file-path 映射文件（或 --excel）] [--styles-only/--no-styles-only] [--interactive]
 ```
 
 - `--dir`：递归扫描该目录下所有 `.sld` 文件。
 - `--file-path`（`--excel` 兼容别名）：样式-图层映射文件（一对多）。**不传则按"同名图层"回退绑定**。
+- `--styles-only`：**仅上传/更新样式，不绑定任何图层**（不查图层、不改默认样式），输出样式级汇总。与 `--file-path` 互斥；也可用配置 `[style].styles_only = true` 启用，`--no-styles-only` 显式关闭。
 - `--interactive`：列出 `.sld` 文件，交互勾选后再发布。
 
 ### 5.2 示例 1：同名回退（不带 --file-path）
@@ -298,13 +299,27 @@ geopub style \
   --dir "./data/styles" --interactive
 ```
 
-### 5.5 示例 4：配合配置文件最简
+### 5.5 示例 4：仅上传样式（--styles-only）
+
+只把目录下的 SLD 推上 GeoServer（已存在则更新），**完全不触碰图层**——适合预先批量上传样式、或图层由其他流程管理的场景。不会出现「图层不存在」告警。
+
+```bash
+geopub style \
+  --url "http://localhost:8080/geoserver" \
+  --user admin --password 'YOUR_PASSWORD' \
+  --workspace demo \
+  --dir "./data/styles" --styles-only
+```
+
+> 注意：`--styles-only` 与 `--file-path` 互斥，同时给出会报错退出。配置文件方式见 `[style].styles_only = true`（`geopub.example.toml`）。
+
+### 5.6 示例 5：配合配置文件最简
 
 ```bash
 geopub --config geopub.toml style --dir ./styles --file-path ./style_mapping.xlsx
 ```
 
-### 5.6 映射文件格式
+### 5.7 映射文件格式
 
 首行为表头（自动跳过），其后每行两列，**一对多**（同一样式可分多行对应多个图层）：
 
@@ -317,7 +332,7 @@ geopub --config geopub.toml style --dir ./styles --file-path ./style_mapping.xls
 - 样式名列可带或不带 `.sld` 后缀，工具都会识别。
 - 未配置映射时自动回退到同名图层。
 
-### 5.6.1 CSV 等价格式（服务器推荐）
+### 5.7.1 CSV 等价格式（服务器推荐）
 
 `.xlsx` 在 Linux 服务器上编辑不便，**所有 `--file-path`（兼容 `--excel`）参数现在同时支持 `.csv` 文本文件**，命令写法完全不变——把文件名换成 `.csv` 即可。CSV 用纯文本，服务器上 `vi`/`nano` 直接编辑，且与 Excel 零成本互转（Excel「另存为 CSV」即可）。
 
@@ -347,11 +362,12 @@ poi_point
 > - 旧 `.xlsx` 文件继续可用，无需迁移；同一台机器上 `.xlsx` 与 `.csv` 可混用。
 > - 命令行参数主名为 `--file-path`；旧的 `--excel` 作为**兼容别名**保留（接收 .xlsx/.csv），旧脚本不受影响。
 
-### 5.7 行为说明
+### 5.8 行为说明
 
 - **发布/更新**：`existsStyle` 已存在则更新，否则新建。
-- **绑定**：对每个目标图层 `configureLayer` 设置默认样式（PUT `/layers/{layer}`）；图层不存在则跳过（状态 `skipped`）。
-- **返回结构**：
+- **绑定**（默认模式）：对每个目标图层 `configureLayer` 设置默认样式（PUT `/layers/{layer}`）；图层不存在则跳过（状态 `skipped`）。
+- **仅上传模式**（`--styles-only`）：只执行发布/更新，不调用任何图层接口；结果中 `targets` / `binds` 恒为空数组。
+- **返回结构**（默认模式）：
 
 ```json
 {"style": "road_style", "publish": "created", "targets": ["highway", "local_road"],
@@ -645,7 +661,7 @@ geopub --config geopub.toml serve --port 8000
 | POST | `/api/test`          | 测试 GeoServer 连通性  | —                                                                                            |
 | GET  | `/api/tables`        | 列出数据库表            | —                                                                                            |
 | POST | `/api/layer/publish` | 发布图层              | `{"mode":"file\|all\|list","file_path":路径,"column":"图层名","tables":[]}`                        |
-| POST | `/api/style/publish` | 发布并绑定样式           | `{"style_dir":路径,"file_path":路径或null}`                                                       |
+| POST | `/api/style/publish` | 发布样式（默认绑定图层；`styles_only=true` 仅上传） | `{"style_dir":路径,"file_path":路径或null,"styles_only":false}`                              |
 | POST | `/api/fetch`         | 拉取样式              | `{"layers":[],"file_path":路径,"column":"图层名","out":"sld_output","list_only":false}`            |
 | POST | `/api/check`         | 核对图层发布状态（输出 CSV） | `{"layers":[],"file_path":路径,"column":"图层名","out":"layer_check_result.csv","deep":false,"check_db":false,"only_missing":false}` |
 
@@ -712,6 +728,7 @@ python scripts/build.py        # 产出 dist/geopub（Linux）/ dist/geopub.exe�
 - **配置文件明文密码**：`geopub.toml` 含明文密码，请设权限 `chmod 600 geopub.toml` 并加入 `.gitignore`，避免提交到仓库。
 - **幂等**：已存在的图层 / 样式会跳过或更新，不会重复创建；可放心重跑。
 - **样式同名回退**：`style` 未给 `--file-path` 时，自动尝试绑定同名图层；图层不存在则告警跳过（不影响其他样式）。
+- **仅上传样式**：只想把 SLD 推上服务器、暂不绑定时用 `geopub style --styles-only`（或 Web 勾选「仅上传，不绑定图层」）；该模式与 `--file-path` 互斥，同时给出会报错退出。
 - **`fetch` 为只读**：只下载 SLD，不发布 / 不替换样式，可反复运行。
 - **坐标系**：图层默认 `EPSG:4326`，如需自定义在 `client.publish_db_layer` 调整。
 - **Web 依赖为可选**：未安装 `fastapi/uvicorn` 时，其余 CLI 子命令仍可用，`serve` 会提示 `pip install "geopub[web]"`。

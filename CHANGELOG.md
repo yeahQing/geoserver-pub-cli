@@ -5,6 +5,33 @@
 
 ---
 
+## [0.2.0] — 2026-11-13
+
+### 命令
+
+- **`geopub style` 新增 `--styles-only`（配对 `--no-styles-only`）**：仅上传/更新 SLD 样式，
+  完全不绑定图层（不查图层、不改默认样式），输出样式级汇总「新增 X / 更新 Y / 失败 Z」，
+  不再出现「图层不存在」告警。适合预先批量上传样式、或图层由其他流程管理的场景。
+  与 `--file-path` 互斥，同时给出会在发起任何请求前报错退出。默认行为不变。
+
+### 配置
+
+- `[style].styles_only`：配置文件方式启用仅上传模式，优先级遵循既有约定
+  （命令行显式值 > 配置文件 > 默认关闭）。
+
+### Web
+
+- `POST /api/style/publish` 请求体新增可选 `styles_only` 字段；样式页新增
+  「仅上传，不绑定图层」勾选框，与 CLI 行为一致。
+
+### 开发
+
+- 引入 [OpenSpec](https://github.com/Fission-AI/OpenSpec) 规格驱动流程：本功能的设计与验收
+  场景见 `openspec/`（变更 `add-style-only-upload`，能力 `style-publishing`）。
+- 新增 `tests/test_style_publish.py`（11 个离线用例，仿 `test_check.py` 的 FakeClient 模式）。
+
+---
+
 ## [0.1.0] — 2026-10-22
 
 首个开源版本。

@@ -40,6 +40,7 @@ class LayerPublishIn(BaseModel):
 class StylePublishIn(BaseModel):
     style_dir: str
     file_path: Optional[str] = None
+    styles_only: bool = False  # 仅上传样式，不绑定图层
 
 
 class FetchIn(BaseModel):
@@ -143,10 +144,17 @@ def make_app(geo: GeoConfig, db: DbConfig) -> FastAPI:
 
     @app.post("/api/style/publish")
     def style_publish(inp: StylePublishIn) -> dict:
-        mapping = read_style_mapping(inp.file_path) if inp.file_path else {}
+        # 仅上传模式与映射互斥：优先仅上传，忽略映射来源（与 CLI 语义一致）
+        mapping = (
+            read_style_mapping(inp.file_path)
+            if inp.file_path and not inp.styles_only
+            else {}
+        )
         try:
             with GeoServerClient(geo) as c:
-                results = core.publish_styles(c, inp.style_dir, mapping)
+                results = core.publish_styles(
+                    c, inp.style_dir, mapping, styles_only=inp.styles_only
+                )
             return {"count": len(results), "results": results}
         except Exception as exc:  # noqa: BLE001
             raise HTTPException(status_code=500, detail=str(exc))

@@ -70,6 +70,9 @@ geopub style --dir ./styles --file-path ./examples/style_mapping.csv
 
 # 不带映射文件时，自动按「同名图层」回退绑定
 geopub style --dir ./styles
+
+# 仅上传/更新样式，不绑定任何图层（不产生「图层不存在」告警）
+geopub style --dir ./styles --styles-only
 ```
 
 ### 2.4 核对发布状态（只读）
@@ -99,7 +102,7 @@ geopub fetch --file-path ./examples/layer_names.csv --list   # 只看会处理�
 | 命令 | 作用 | 是否写 GeoServer |
 |---|---|---|
 | `geopub layer` | 发布 PostGIS 表为图层（支持自愈已存在的半成品） | 写 |
-| `geopub style` | 上传 SLD 并绑定为图层默认样式 | 写 |
+| `geopub style` | 上传 SLD，默认绑定为图层默认样式（`--styles-only` 仅上传） | 写 |
 | `geopub fetch` | 批量下载图层默认样式 SLD | 只读 |
 | `geopub check` | 按清单核对发布状态，输出 CSV | 只读 |
 | `geopub serve` | 启动本地 Web 界面（默认 `127.0.0.1:8000`） | 取决于操作 |

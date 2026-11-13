@@ -35,7 +35,8 @@ all = false         # 是否发布 schema 下所有表
 
 [style]
 dir = ""            # SLD 文件目录
-file_path = ""      # 样式-图层映射文件（可选，.xlsx 或 .csv）
+file_path = ""      # 样式-图层映射文件（可选，.xlsx 或 .csv；与 styles_only 互斥）
+styles_only = false # true 时仅上传/更新样式，不绑定图层（等效 --styles-only）
 
 [fetch]
 out = "sld_output"  # SLD 输出目录：拉取的每个 .sld 落盘到此目录

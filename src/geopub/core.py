@@ -201,8 +201,14 @@ def publish_styles(
     style_dir: str,
     mapping: dict[str, list[str]],
     sld_files: list[str] | None = None,
+    styles_only: bool = False,
 ) -> list[dict]:
-    """发布/更新 SLD 并绑定为图层默认样式，返回每样式结果。"""
+    """发布/更新 SLD 并绑定为图层默认样式，返回每样式结果。
+
+    styles_only=True 时为「仅上传」模式：只创建/更新样式，不读取或修改
+    任何图层（不查图层存在性、不改默认样式）；结果中 targets / binds
+    恒为空列表，键仍保留以保持返回结构稳定。
+    """
     if sld_files is None:
         sld_files = discover_sld_files(style_dir)
 
@@ -246,6 +252,12 @@ def publish_styles(
                     "raw": "",
                     "binds": [],
                 }
+            )
+            continue
+
+        if styles_only:
+            results.append(
+                {"style": name, "publish": pub, "targets": [], "binds": []}
             )
             continue
 

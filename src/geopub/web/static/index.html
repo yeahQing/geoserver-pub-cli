@@ -120,7 +120,10 @@
       <div class="field full"><label>映射文件（可选，样式-图层一对多）</label><input id="s_file" placeholder="mapping.xlsx/csv"></div>
     </div>
     <div class="row">
-      <button class="act" onclick="publishStyles()">发布并绑定</button>
+      <label style="display:flex;align-items:center;gap:5px;margin:0">
+        <input type="checkbox" id="s_only" style="width:auto"> 仅上传，不绑定图层
+      </label>
+      <button class="act" onclick="publishStyles()">发布</button>
     </div>
     <pre id="s_out" style="display:none"></pre>
   </div>
@@ -277,7 +280,11 @@ async function publishLayers() {
 }
 
 async function publishStyles() {
-  const body = { style_dir: $('s_dir').value.trim(), file_path: $('s_file').value.trim() || null };
+  const body = {
+    style_dir: $('s_dir').value.trim(),
+    file_path: $('s_file').value.trim() || null,
+    styles_only: $('s_only').checked,
+  };
   const r = await fetch('/api/style/publish', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
   show($('s_out'), await r.json());
 }

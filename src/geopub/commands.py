@@ -85,8 +85,14 @@ def style_publish(
     style_dir: str,
     file_path: str | None = None,
     interactive: bool = False,
+    styles_only: bool = False,
 ) -> None:
-    """发布 SLD 样式并绑定为图层默认样式。"""
+    """发布 SLD 样式；默认绑定为图层默认样式，styles_only 仅上传不绑定。"""
+    if styles_only:
+        console.print("[cyan]仅上传模式：不绑定图层[/cyan]")
+        # CLI 层已做互斥校验，此处兜底忽略映射来源
+        file_path = None
+
     mapping = read_style_mapping(file_path) if file_path else {}
     if file_path:
         console.print(f"[cyan]加载样式映射 {len(mapping)} 条[/cyan]")
@@ -103,8 +109,11 @@ def style_publish(
         sld_files = [f for f in sld_files if os.path.basename(f) in chosen]
 
     with GeoServerClient(geo) as client:
-        results = core.publish_styles(client, style_dir, mapping, sld_files)
+        results = core.publish_styles(
+            client, style_dir, mapping, sld_files, styles_only=styles_only
+        )
         n_ok = n_skip = n_fail = n_pub_fail = 0
+        n_created = n_updated = 0
         for r in results:
             # 样式发布本身失败（如 GeoServer 数据目录写盘 500）：必须透出真因
             if r["publish"] == "failed":
@@ -122,6 +131,12 @@ def style_publish(
             color = "cyan" if r["publish"] == "updated" else "green"
             console.print(f"[{color}]{verb}样式: {r['style']}[/]")
             runlog.log(f"[style] {verb} {r['style']}")
+            if styles_only:
+                if r["publish"] == "updated":
+                    n_updated += 1
+                else:
+                    n_created += 1
+                continue
             for b in r["binds"]:
                 if b["status"] == "ok":
                     n_ok += 1
@@ -144,6 +159,27 @@ def style_publish(
                             f"[style] 绑定失败 {b['layer']} - GeoServer 原始响应:",
                             b["raw"],
                         )
+        if styles_only:
+            # 仅上传模式：汇总只看样式本身，不涉及图层
+            parts = [f"新增 {n_created}", f"更新 {n_updated}"]
+            if n_pub_fail:
+                parts.append(f"失败 {n_pub_fail}")
+            summary = "样式汇总：" + " / ".join(parts)
+            if n_pub_fail:
+                console.print(f"[yellow]{summary}[/yellow]")
+                console.print(
+                    "[red]有样式发布失败，请见上方 `发布样式失败: <样式名> (HTTP xxx: ...)` "
+                    "中的服务端原始报错。[/red]"
+                )
+                console.print(
+                    "[red]常见原因：① SLD 版本与媒体类型不匹配（No converter）；"
+                    "② GeoServer 数据目录写盘故障（Error persisting）。"
+                    "可按具体报错针对性处理。[/red]"
+                )
+            else:
+                console.print(f"[green]{summary}[/green]")
+            runlog.log(f"[style] 仅上传 {summary}")
+            return
         parts = [f"成功 {n_ok}"]
         if n_skip:
             parts.append(f"跳过 {n_skip}")

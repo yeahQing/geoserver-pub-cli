@@ -95,10 +95,10 @@ def _geo(
     password = pick(CONFIG, "geoserver", "password", password)
     workspace = pick(CONFIG, "geoserver", "workspace", workspace, "demo")
     if not url:
-        console.print("[red]错误：未提供 GeoServer 地址（命令行 --url 或配置 [geoserver].url）[/red]")
+        console.print("[red]错误：未提供 GeoServer 地址（命令行 --url 或配置 \[geoserver].url）[/red]")
         raise typer.Exit(code=1)
     if not password:
-        console.print("[red]错误：未提供密码（命令行 --password 或配置 [geoserver].password）[/red]")
+        console.print("[red]错误：未提供密码（命令行 --password 或配置 \[geoserver].password）[/red]")
         raise typer.Exit(code=1)
     return GeoConfig(url=url, username=user, password=password, workspace=workspace)
 
@@ -120,10 +120,10 @@ def _db(
     password = pick(CONFIG, "database", "password", password)
     store = pick(CONFIG, "database", "store", store, "pg_store")
     if not host:
-        console.print("[red]错误：未提供数据库 host（命令行 --db-host 或配置 [database].host）[/red]")
+        console.print("[red]错误：未提供数据库 host（命令行 --db-host 或配置 \[database].host）[/red]")
         raise typer.Exit(code=1)
     if not password:
-        console.print("[red]错误：未提供数据库密码（命令行 --db-pass 或配置 [database].password）[/red]")
+        console.print("[red]错误：未提供数据库密码（命令行 --db-pass 或配置 \[database].password）[/red]")
         raise typer.Exit(code=1)
     return DbConfig(
         host=host,
@@ -174,16 +174,31 @@ def style_cmd(
     workspace: str | None = typer.Option(None, "--workspace"),
     style_dir: str | None = typer.Option(None, "--dir", help="SLD 文件目录"),
     file_path: str | None = typer.Option(None, "--file-path", "--excel", help="样式-图层映射文件（.xlsx 或 .csv，两列：样式名,图层名）"),
+    styles_only: bool | None = typer.Option(
+        None, "--styles-only/--no-styles-only",
+        help="仅上传/更新样式，不绑定图层（与 --file-path 互斥）",
+    ),
     interactive: bool = typer.Option(False, "--interactive", help="交互勾选样式"),
 ) -> None:
-    """发布 SLD 样式并绑定为图层默认样式。"""
-    geo = _geo(url, user, password, workspace)
+    """发布 SLD 样式并绑定为图层默认样式（--styles-only 仅上传不绑定）。"""
     style_dir = pick(CONFIG, "style", "dir", style_dir)
     file_path = pick(CONFIG, "style", "file_path", file_path)
-    if not style_dir:
-        console.print("[red]错误：未提供 SLD 目录（命令行 --dir 或配置 [style].dir）[/red]")
+    styles_only = bool(pick(CONFIG, "style", "styles_only", styles_only, False))
+    # 互斥校验放在连接校验之前：参数级错误不必等到请求 GeoServer 才失败
+    if styles_only and file_path:
+        console.print(
+            "[red]错误：仅上传模式（--styles-only）与样式-图层映射"
+            "（--file-path 或配置 \\[style].file_path）互斥，请移除其一[/red]"
+        )
         raise typer.Exit(code=1)
-    commands.style_publish(geo, style_dir, file_path=file_path, interactive=interactive)
+    geo = _geo(url, user, password, workspace)
+    if not style_dir:
+        console.print("[red]错误：未提供 SLD 目录（命令行 --dir 或配置 \\[style].dir）[/red]")
+        raise typer.Exit(code=1)
+    commands.style_publish(
+        geo, style_dir, file_path=file_path, interactive=interactive,
+        styles_only=styles_only,
+    )
 
 
 @app.command("fetch")
